@@ -6,8 +6,10 @@
 #include <iostream>
 #include <unordered_set>
 #include <vector>
+#include <map>
 #include <stdexcept>
 #include <cstdlib>
+#include <optional>
 
 // extension里的方法需要动态加载
 VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
@@ -141,6 +143,7 @@ private:
     void initVulkan() {
         createInstance();
         setupDebugMessenger();
+        pickPhysicalDevice();
     }
 
     void mainLoop() {
@@ -159,6 +162,124 @@ private:
         glfwDestroyWindow(window);
 
         glfwTerminate();
+    }
+
+    void pickPhysicalDevice() {
+        // pysicalDeivce will be implicitly destroyed along with VkInstance
+        VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+        uint32_t deviceCount = 0;
+        vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
+
+        if (deviceCount == 0) {
+            throw std::runtime_error("failed to find GPUs with Vulkan support!");
+        }
+
+        std::vector<VkPhysicalDevice> devices(deviceCount);
+        vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
+
+        // get 1st suitable device
+        for (const auto& device : devices) {
+            if (isDeviceSuitable(device)) {
+                physicalDevice = device;
+                break;
+            }
+        }
+
+        if (physicalDevice == VK_NULL_HANDLE) {
+            throw std::runtime_error("failed to find a suitable GPU!");
+        }
+
+        //// Use an ordered map to automatically sort candidates by increasing score
+        //std::multimap<int, VkPhysicalDevice> candidates;
+
+        //for (const auto& device : devices) {
+        //    int score = rateDeviceSuitability(device);
+        //    candidates.insert(std::make_pair(score, device));
+        //}
+
+        //// Check if the best candidate is suitable at all
+        //if (candidates.rbegin()->first > 0) {
+        //    physicalDevice = candidates.rbegin()->second;
+        //}
+        //else {
+        //    throw std::runtime_error("failed to find a suitable GPU!");
+        //}
+    }
+
+    int rateDeviceSuitability(VkPhysicalDevice device) {
+        // get name, type and supported Vulkan version
+        VkPhysicalDeviceProperties deviceProperties;
+        vkGetPhysicalDeviceProperties(device, &deviceProperties);
+
+        // get Texture compression support, 64 bits float support and VR support
+        VkPhysicalDeviceFeatures deviceFeatures;
+        vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
+
+        int score = 0;
+
+        // Discrete GPUs have a significant performance advantage
+        if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
+            score += 1000;
+        }
+
+        // Maximum possible size of textures affects graphics quality
+        score += deviceProperties.limits.maxImageDimension2D;
+
+        // Application can't function without geometry shaders
+        if (!deviceFeatures.geometryShader) {
+            return 0;
+        }
+
+        return score;
+    }
+
+    bool isDeviceSuitable(VkPhysicalDevice device) {
+        // get name, type and supported Vulkan version
+        VkPhysicalDeviceProperties deviceProperties;
+        vkGetPhysicalDeviceProperties(device, &deviceProperties);
+
+        // get Texture compression support, 64 bits float support and VR support
+        VkPhysicalDeviceFeatures deviceFeatures;
+        vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
+
+        QueueFamilyIndices indices = findQueueFamilies(device);
+
+        // 判定是否独立显卡 & 支持几何着色器
+        return deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU
+            && deviceFeatures.geometryShader
+            && indices.isComplete();
+    }
+
+    struct QueueFamilyIndices {
+        std::optional<uint32_t> graphicsFamily;
+        // uint32_t graphicsFamily;
+
+        bool isComplete() {
+            return graphicsFamily.has_value();
+        }
+    };
+
+    QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device) {
+        QueueFamilyIndices indices;
+
+        // Logic to find queue family indices to populate struct with
+        uint32_t queueFamilyCount = 0;
+        vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+
+        std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+        vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+
+        int i = 0;
+        for (const auto& queueFamily : queueFamilies) {
+            if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+                indices.graphicsFamily = i;
+                break;
+            }
+
+            i++;
+        }
+
+        return indices;
     }
 
     std::vector<const char*> getRequiredExtensions() {
