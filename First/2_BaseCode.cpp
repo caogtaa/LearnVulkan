@@ -1,5 +1,5 @@
-// #include <vulkan/vulkan.h>
-// ֱ�Ӱ���glfw3.h���ڲ�������vulkan.h
+﻿// #include <vulkan/vulkan.h>
+// 直接包含glfw3.h，内部包含了vulkan.h
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
@@ -11,7 +11,7 @@
 #include <cstdlib>
 #include <optional>
 
-// extension��ķ�����Ҫ��̬����
+// extension里的方法需要动态加载
 VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
     auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
     if (func != nullptr) {
@@ -48,6 +48,10 @@ private:
 
     GLFWwindow* window;
     VkInstance instance;
+
+    // logical device
+    VkDevice device;
+    VkQueue graphicsQueue;
 public:
     void run() {
         initWindow();
@@ -121,7 +125,7 @@ private:
         createInfo.ppEnabledExtensionNames = glfwExtensions.data();
 
         // specify validation layer
-        VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};       // ���debug util messenger���ڽ���instance creation/destroy���쳣��Ϣ
+        VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};       // 这个debug util messenger用于接收instance creation/destroy的异常消息
         if (enableValidationLayers) {
             createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
             createInfo.ppEnabledLayerNames = validationLayers.data();
@@ -143,7 +147,8 @@ private:
     void initVulkan() {
         createInstance();
         setupDebugMessenger();
-        pickPhysicalDevice();
+        auto physicalDevice = pickPhysicalDevice();
+        createLogicalDevice(physicalDevice);
     }
 
     void mainLoop() {
@@ -153,8 +158,9 @@ private:
     }
 
     void cleanup() {
+        vkDestroyDevice(device, nullptr);
         if (enableValidationLayers) {
-            // DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
+            DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
         }
 
         vkDestroyInstance(instance, nullptr);
@@ -164,7 +170,7 @@ private:
         glfwTerminate();
     }
 
-    void pickPhysicalDevice() {
+    VkPhysicalDevice pickPhysicalDevice() {
         // pysicalDeivce will be implicitly destroyed along with VkInstance
         VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
         uint32_t deviceCount = 0;
@@ -189,6 +195,8 @@ private:
             throw std::runtime_error("failed to find a suitable GPU!");
         }
 
+        return physicalDevice;
+
         //// Use an ordered map to automatically sort candidates by increasing score
         //std::multimap<int, VkPhysicalDevice> candidates;
 
@@ -204,6 +212,50 @@ private:
         //else {
         //    throw std::runtime_error("failed to find a suitable GPU!");
         //}
+    }
+
+    void createLogicalDevice(VkPhysicalDevice physicalDevice) {
+        QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
+
+        VkDeviceQueueCreateInfo queueCreateInfo{};
+        queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queueCreateInfo.queueFamilyIndex = indices.graphicsFamily.value();
+        queueCreateInfo.queueCount = 1;
+
+        float queuePriority = 1.0f;
+        queueCreateInfo.pQueuePriorities = &queuePriority;
+
+        // specify required features
+        VkPhysicalDeviceFeatures deviceFeatures{};
+
+
+        VkDeviceCreateInfo createInfo{};
+        createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+
+        createInfo.pQueueCreateInfos = &queueCreateInfo;
+        createInfo.queueCreateInfoCount = 1;
+
+        createInfo.pEnabledFeatures = &deviceFeatures;
+
+        // VkInstance已经设置过validationLayers，但是这里还是再设置一次
+        // 新的实现里已经不需要device级别的validationLayers，会直接忽略device级别的validationLayers
+        // 但是为了和旧的Vulkan实现兼容，最好也设置一下
+        createInfo.enabledExtensionCount = 0;
+        if (enableValidationLayers) {
+            createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+            createInfo.ppEnabledLayerNames = validationLayers.data();
+        }
+        else {
+            createInfo.enabledLayerCount = 0;
+        }
+
+        // Create logical device
+        if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &device) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create logical device!");
+        }
+
+        // Get queue
+        vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
     }
 
     int rateDeviceSuitability(VkPhysicalDevice device) {
@@ -244,7 +296,7 @@ private:
 
         QueueFamilyIndices indices = findQueueFamilies(device);
 
-        // �ж��Ƿ�����Կ� & ֧�ּ�����ɫ��
+        // 判定是否独立显卡 & 支持几何着色器
         return deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU
             && deviceFeatures.geometryShader
             && indices.isComplete();
