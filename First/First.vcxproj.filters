@@ -21,5 +21,19 @@
     <ClCompile Include="2_BaseCode.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="3_swap_chain.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="4_draw_triangle.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="shaders\frag.spv">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="shaders\vert.spv">
+      <Filter>资源文件</Filter>
+    </None>
   </ItemGroup>
 </Project>
