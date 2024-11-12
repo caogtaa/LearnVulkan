@@ -40,8 +40,8 @@
     <ClCompile Include="4_draw_triangle.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="shaders\frag.spv" />
-    <None Include="shaders\vert.spv" />
+    <None Include="shaders\triangle.frag" />
+    <None Include="shaders\triangle.vert" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

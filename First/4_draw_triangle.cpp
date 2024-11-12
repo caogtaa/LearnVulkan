@@ -1,4 +1,4 @@
-#define GLFW_INCLUDE_VULKAN
+﻿#define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
 #include <iostream>
@@ -88,10 +88,10 @@ private:
 
     VkSwapchainKHR swapChain;
     std::vector<VkImage> swapChainImages;
-    VkFormat swapChainImageFormat;
+    VkFormat swapChainImageFormat;                      // 默认是R8G8B8A8
     VkExtent2D swapChainExtent;
-    std::vector<VkImageView> swapChainImageViews;
-    std::vector<VkFramebuffer> swapChainFramebuffers;
+    std::vector<VkImageView> swapChainImageViews;       // VkImageView管理VkImage的纹理状态等属性
+    std::vector<VkFramebuffer> swapChainFramebuffers;   // VkFramebuffer管理多个VkImageView
 
     VkRenderPass renderPass;
     VkPipelineLayout pipelineLayout;
@@ -391,6 +391,9 @@ private:
         swapChainExtent = extent;
     }
 
+    /// <summary>
+    /// 对于每个swap chain里的image，都创建一个imageView
+    /// </summary>
     void createImageViews() {
         swapChainImageViews.resize(swapChainImages.size());
 
@@ -399,17 +402,20 @@ private:
             createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
             createInfo.image = swapChainImages[i];
             createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-            createInfo.format = swapChainImageFormat;
-            createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+            createInfo.format = swapChainImageFormat;                           // 默认是R8G8B8A8
+            createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;            // identity表示默认。可以选择在channel之间互相映射，或者将channel改为常量
             createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
             createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
             createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-            createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT; // 作为color target使用
             createInfo.subresourceRange.baseMipLevel = 0;
             createInfo.subresourceRange.levelCount = 1;
             createInfo.subresourceRange.baseArrayLayer = 0;
             createInfo.subresourceRange.layerCount = 1;
 
+            // If you were working on a stereographic 3D application, 
+            // then you would create a swap chain with multiple layers. 
+            // You could then create multiple image views for each image representing the views for the left and right eyes by accessing different layers.
             if (vkCreateImageView(device, &createInfo, nullptr, &swapChainImageViews[i]) != VK_SUCCESS) {
                 throw std::runtime_error("failed to create image views!");
             }
