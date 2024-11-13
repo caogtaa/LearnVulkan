@@ -27,6 +27,9 @@
     <ClCompile Include="4_draw_triangle.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="5_vertex_buffers.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\triangle.frag">
