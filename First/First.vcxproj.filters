@@ -30,12 +30,21 @@
     <ClCompile Include="5_vertex_buffers.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="6_uniform_buffers.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\triangle.frag">
       <Filter>资源文件</Filter>
     </None>
     <None Include="shaders\triangle.vert">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="shaders\vertex_buffers.frag">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="shaders\vertex_buffers.vert">
       <Filter>资源文件</Filter>
     </None>
   </ItemGroup>
