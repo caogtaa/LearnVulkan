@@ -1,2 +1,2 @@
-I:/VulkanSDK/1.3.296.0/Bin/glslc.exe uniform_buffers.vert -o uniform_buffers_vert.spv
-I:/VulkanSDK/1.3.296.0/Bin/glslc.exe uniform_buffers.frag -o uniform_buffers_frag.spv
+I:/VulkanSDK/1.3.296.0/Bin/glslc.exe texture_mapping.vert -o texture_mapping_vert.spv
+I:/VulkanSDK/1.3.296.0/Bin/glslc.exe texture_mapping.frag -o texture_mapping_frag.spv
